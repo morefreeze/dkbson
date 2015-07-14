@@ -15,6 +15,8 @@ var parse_iss = function(str){
         console.log(res);
         process.exit(2);
     }
+    // sort by page_no
+    res_pages = [];
     var field = process.argv[3];
     if ('title' == field){
         console.log(res.title);

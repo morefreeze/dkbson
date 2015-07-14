@@ -241,9 +241,6 @@ var req = function(options, end_cb){
             str += chunk;
         });
         response.on('end', function(){ end_cb(str); });
-        response.on('error', function(e){
-            console.log(e.message);
-        });
     }).end();
 };
 exports.req = req;
