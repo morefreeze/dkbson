@@ -9,5 +9,5 @@ if [ ! -f ${1}.jsurl ];then
     cat ${1}.iss | node convert_iss_js.js > ${1}.jsurl
 fi
 title=$(node get_book_info.js $1 title)
-title=${title// /_}
+title="${1:0:4}${title// /_}"
 cat ${1}.jsurl| node get_page_content.js > ${title}.txt
