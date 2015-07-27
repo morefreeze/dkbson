@@ -1,3 +1,4 @@
+# /usr/bin/env bash
 if [[ $1 == "" ]];then
     echo "Usage: sh $0 book_id"
     exit 1
@@ -10,4 +11,17 @@ if [ ! -f ${1}.jsurl ];then
 fi
 title=$(node get_book_info.js $1 title)
 title="${1:0:4}${title// /_}"
-cat ${1}.jsurl| node get_page_content.js > ${title}.txt
+count=0;
+lines=""
+mv ${title}.txt ${title}.txt.bak 2>/dev/null
+while read line; do
+    count=$((count+1))
+    lines="$lines$line\n"
+    if (( count % 100 == 0 ));then
+        echo -en "$lines" | node get_page_content.js >> ${title}.txt
+        lines=""
+    fi
+done << EOF
+$(cat $1.jsurl)
+EOF
+echo -en "$lines" | node get_page_content.js >> ${title}.txt

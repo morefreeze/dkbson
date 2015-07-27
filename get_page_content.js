@@ -12,6 +12,7 @@ var res_arr = [];
 var k = 0;
 var finished = 0;
 rl.on('line', function(line){
+    if ('' === line) return;
     res_arr.push({'options': line, 'line':line,});
     (function do_req(k){
         var get_content = function(str){
@@ -20,7 +21,7 @@ rl.on('line', function(line){
             str = str.substr(0, str.lastIndexOf("'"));
             res = dk.dkbson.decode(str);
             if (res.status == 'error'){
-                console.log(res);
+                console.error(res);
                 process.exit(2);
             }
             // try to restore text, if current word y != last_y then add newline
@@ -42,7 +43,7 @@ rl.on('line', function(line){
             if (finished == res_arr.length){
                 for (var kk in res_arr){
                     if (undefined === res_arr[kk].text){
-                        console.log('Page number content '+kk+' is missing ' + res_arr[kk].line);
+                        console.error('Page number content '+kk+' is missing ' + res_arr[kk].line);
                     }
                     else{
                         console.log(res_arr[kk].text);

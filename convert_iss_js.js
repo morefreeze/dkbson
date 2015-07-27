@@ -12,6 +12,7 @@ var res_arr = [];
 var k = 0;
 var finished = 0;
 rl.on('line', function(line){
+    if ('' === line) return;
     var options = {
         host: 'www.duokan.com',
         path: '/reader/page/'+line,

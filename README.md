@@ -2,9 +2,12 @@
 Extract the dkbson in duokan.com for decode duokan data
 
 ### get_whole_book.sh
-`sh get_whole_book.sh book_md5`
+`bash get_whole_book.sh book_md5`
+** DO RUN WITH bash INSTEAD OF sh **
 It will save all middle result including iss list and js url list, finally it
 will save ${title}.txt
+If you find get_whole_book.sh failed, it may because `echo -en` can't be supported
+by `sh`. So I said run it with `bash`
 
 Also, you can only know this one-key shell, following is separate js script
 
