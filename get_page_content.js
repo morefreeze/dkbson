@@ -31,8 +31,8 @@ rl.on('line', function(line){
             for(var j in items){
                  if(items[j].type=='word'){
                     if(last_y!=items[j].y){
-                        s+="\n";
-                        if(items[j].x >= 100) s+="    ";
+                        //s+="\n";
+                        if(items[j].x >= 100) s+="\n    ";
                     }
                     s+=items[j].char;
                     last_y=items[j].y;
