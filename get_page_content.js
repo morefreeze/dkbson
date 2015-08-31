@@ -19,6 +19,8 @@ rl.on('line', function(line){
             // duokan_page('bson_content'), remove single quote outside
             str = str.substr(str.indexOf("'")+1);
             str = str.substr(0, str.lastIndexOf("'"));
+            console.error(line);
+            console.error(str.length);
             res = dk.dkbson.decode(str);
             if (res.status == 'error'){
                 console.error(res);

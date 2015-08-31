@@ -18,7 +18,7 @@ total=$(wc -l ${1}.jsurl | awk '{print $1}')
 while read line; do
     count=$((count+1))
     lines="$lines$line\n"
-    if (( count % 100 == 0 ));then
+    if (( count % 89 == 0 ));then
         echo $count / $total
         echo "$lines" | node get_page_content.js >> ${title}.txt
         lines=""

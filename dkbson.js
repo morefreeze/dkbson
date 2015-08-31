@@ -246,9 +246,11 @@ var req = function(options, end_cb){
             console.error('some error: ' + e.message);
         });
     });
+    /*
     reqq.setTimeout(3000, function(e){
         console.error('timeout '+e);
     });
+    */
     reqq.end();
 };
 exports.req = req;

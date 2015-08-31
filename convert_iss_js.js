@@ -29,7 +29,6 @@ rl.on('line', function(line){
             finished += 1;
             if (finished == res_arr.length){
                 for (var kk in res_arr){
-                    // retry 3 times every 300ms, or alert an error
                     if (undefined === res_arr[kk].js_url){
                         console.log('Page number js_url '+kk+' is missing ' + res_arr[kk].line);
                     }

@@ -39,6 +39,14 @@ to make new line, but it is useless when the book including lots of formula
 or mathematical symbols.
 
 ## TODO
-I am trying to let the duokan web page load local iss file to display rich text
+1. I am trying to let the duokan web page load local iss file to display rich text
 of the book.
 
+1. The ugly parse rich text function will add newline if the text is in a list or a new page, like:
+- blahblahblah
+
+parse rich function output(always output 4 space at line head):
+
+        blahblah
+
+        blah
