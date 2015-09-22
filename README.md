@@ -4,8 +4,6 @@ Extract the dkbson in duokan.com for decode duokan data
 ### get_whole_book.sh
 `sh get_whole_book.sh book_md5`
 
-**DO RUN WITH `sh` INSTEAD OF `bash`**
-
 It will save all middle result including iss list and js url list, finally it
 will save ${title}.txt
 
@@ -14,7 +12,7 @@ If you meet this error:
 events.js:85
       throw er; // Unhandled 'error' event
 ```
-use `bash get_whole_book.sh [book_md5]` explicitly
+try use `bash get_whole_book.sh book_md5` explicitly
 
 Also, you can only know this one-key shell, following is separate js script
 
@@ -50,3 +48,5 @@ parse rich function output(always output 4 space at line head):
         blahblah
 
         blah
+
+1. load the image, maybe output as markdown

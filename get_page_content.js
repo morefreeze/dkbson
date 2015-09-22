@@ -15,11 +15,11 @@ rl.on('line', function(line){
     if ('' === line) return;
     res_arr.push({'line':line,});
     (function do_req(k){
+        console.error(line);
         var get_content = function(str){
             // duokan_page('bson_content'), remove single quote outside
             str = str.substr(str.indexOf("'")+1);
             str = str.substr(0, str.lastIndexOf("'"));
-            console.error(line);
             console.error(str.length);
             res = dk.dkbson.decode(str);
             if (res.status == 'error'){
@@ -32,11 +32,11 @@ rl.on('line', function(line){
             items = res.items;
             for(var j in items){
                  if(items[j].type=='word'){
-                    if(last_y!=items[j].y){
-                        if(items[j].x >= 100) s+="\n    ";
-                    }
-                    s+=items[j].char;
-                    last_y=items[j].y;
+                     if(last_y!=items[j].y){
+                         if(items[j].x >= 100) s+="\n    ";
+                     }
+                     s+=items[j].char;
+                     last_y=items[j].y;
                  }
             }
             res_arr[k].text = s;
