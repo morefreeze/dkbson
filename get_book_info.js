@@ -5,10 +5,7 @@ if (process.argv.length <= 2){
     console.log("Usage: node "+process.argv[1]+" book_md5 [title/iss]");
     process.exit(1);
 }
-var options = {
-    host: 'www.duokan.com',
-    path: '/reader/book_info/'+process.argv[2]+'/medium',
-};
+var url = 'http://www.duokan.com' + '/reader/book_info/'+process.argv[2]+'/medium';
 var parse_iss = function(str){
     res = dk.dkbson.decode(str);
     if (res.status == 'error'){
@@ -30,4 +27,4 @@ var parse_iss = function(str){
         console.log(res);
     }
 };
-dk.req(options, parse_iss);
+dk.req(url, parse_iss);

@@ -4,9 +4,11 @@ if [[ $1 == "" ]];then
     exit 1
 fi
 if [ ! -s ${1}.iss ];then
+    echo "${1}.iss downloading..."
     node get_book_info.js $1 iss > ${1}.iss
 fi
 if [ ! -s ${1}.jsurl ];then
+    echo "${1}.jsurl downloading..."
     cat ${1}.iss | node convert_iss_js.js > ${1}.jsurl
 fi
 title=$(node get_book_info.js $1 title)

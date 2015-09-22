@@ -1,6 +1,6 @@
 var readline = require('readline');
 var process = require('process');
-var http = require("http");
+var sleep = require('sleep');
 var dk = require("./dkbson");
 // read book_id/iss_xxxx
 var rl = readline.createInterface({
@@ -13,7 +13,7 @@ var k = 0;
 var finished = 0;
 rl.on('line', function(line){
     if ('' === line) return;
-    res_arr.push({'options': line, 'line':line,});
+    res_arr.push({'line':line,});
     (function do_req(k){
         var get_content = function(str){
             // duokan_page('bson_content'), remove single quote outside
@@ -33,7 +33,6 @@ rl.on('line', function(line){
             for(var j in items){
                  if(items[j].type=='word'){
                     if(last_y!=items[j].y){
-                        //s+="\n";
                         if(items[j].x >= 100) s+="\n    ";
                     }
                     s+=items[j].char;
@@ -55,6 +54,7 @@ rl.on('line', function(line){
         };
         dk.req(line, get_content);
     })(k);
+    sleep.usleep(345000);
     k += 1;
 });
 

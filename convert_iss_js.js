@@ -1,6 +1,5 @@
 var readline = require('readline');
 var process = require('process');
-var http = require("http");
 var dk = require("./dkbson");
 // read book_id/iss_xxxx
 var rl = readline.createInterface({
@@ -13,13 +12,10 @@ var k = 0;
 var finished = 0;
 rl.on('line', function(line){
     if ('' === line) return;
-    var options = {
-        host: 'www.duokan.com',
-        path: '/reader/page/'+line,
-    };
-    res_arr.push({'options':options,'line':line,});
+    var url = 'http://www.duokan.com' + '/reader/page/'+line;
+    res_arr.push({'url':url,'line':line,});
     (function do_req(k){
-        var get_js = function(str){
+        dk.req(res_arr[k].url, function(str){
             var res = dk.dkbson.decode(str);
             if (res.status == 'error'){
                 console.log(res);
@@ -30,15 +26,14 @@ rl.on('line', function(line){
             if (finished == res_arr.length){
                 for (var kk in res_arr){
                     if (undefined === res_arr[kk].js_url){
-                        console.log('Page number js_url '+kk+' is missing ' + res_arr[kk].line);
+                        console.error('Page number js_url '+kk+' is missing ' + res_arr[kk].line);
                     }
                     else{
                         console.log(res_arr[kk].js_url);
                     }
                 }
             }
-        };
-        dk.req(res_arr[k].options, get_js);
+        });
     })(k);
     k += 1;
 });
