@@ -234,40 +234,34 @@ var request = require('request');
 var sleep = require('sleep');
 // DO NOT ADD console.log, use console.error instead or it will make other program confused
 var req = function(options_or_url, end_cb){
-    var MAX_RETRY = 10;
+    var MAX_RETRY = 3;
     var TIMEOUT_MS = 3000;
     var SLEEP_MS = 500;
+    var options = {};
     if ('string' == typeof(options_or_url)){
         var url = options_or_url;
-        options = {};
         options.url = url;
     }
     else{
         options = options_or_url;
     }
-    if (!('timeout' in options)){
-        options.timeout = 3000;
-    }
-    function retry(depth){
-        if (depth >= MAX_RETRY) return;
-        var promise = new Promise(function(resolve, reject){
-            request(options, function(error, response, body){
-                if (error){
-                    if (null !== reject){
-                        reject(error);
+    function get_url(options){
+        return new Promise(function(resolve, reject) {
+            function retry(timeout) {
+                if (timeout > 3) return Promise.reject(new Error("max retry times"));
+                var l_options = {'url': url, 'timeout': timeout*1000};
+                request(l_options, function(error, response, body) {
+                    if (error){
+                        //console.error(timeout + ' ' +options.url + ' ' + error);
+                        retry(timeout+1);
+                        return ;
                     }
-                    console.error('error_js: '+options.url+"\n"+error);
-                    sleep.usleep(SLEEP_MS*1000);
-                    return ;
-                }
-                if (response.statusCode == 200){
                     resolve(body);
-                }
-            });
+                });
+            }
+            retry(1);
         });
-        promise.then(end_cb, function(error) { retry(depth+1); });
     }
-    retry(0);
-    return ;
+    return get_url(options);
 };
 exports.req = req;
