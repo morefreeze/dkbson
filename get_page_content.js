@@ -52,7 +52,7 @@ rl.on('line', function(line){
                 }
             }
         };
-        dk.req(line, get_content);
+        dk.req(line).then(get_content);
     })(k);
     sleep.usleep(345000);
     k += 1;

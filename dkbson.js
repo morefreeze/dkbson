@@ -196,7 +196,7 @@ dkbson = function() {
                 var c = a[1];
                 o = n.substr(r, c), o = t(o), r += c;
             } else
-                i == l.TYPE_NULL ? (o = null, r++) : i == l.TYPE_BOOL ? (o = 0 === n.charCodeAt(r) ? !1 : !0, r++) : i == l.TYPE_REAL16 ? (o = s.toShort(n.substr(r, 2)), o /= 100, r += 2) : i == l.TYPE_REAL24 ? (o = s.toInt(n.substr(r, 3) + "\0"), o /= 1e3, r += 3) : i == l.TYPE_REAL32 ? (o = s.toInt(n.substr(r, 4)), o /= 1e4, r += 4) : console.log("error: unsupported type:" + i.charCodeAt(0));
+                i == l.TYPE_NULL ? (o = null, r++) : i == l.TYPE_BOOL ? (o = 0 === n.charCodeAt(r) ? !1 : !0, r++) : i == l.TYPE_REAL16 ? (o = s.toShort(n.substr(r, 2)), o /= 100, r += 2) : i == l.TYPE_REAL24 ? (o = s.toInt(n.substr(r, 3) + "\0"), o /= 1e3, r += 3) : i == l.TYPE_REAL32 ? (o = s.toInt(n.substr(r, 4)), o /= 1e4, r += 4) : console.error("error: unsupported type:" + i.charCodeAt(0));
             return [r, o];
         }
         function n(t, o) {
@@ -233,10 +233,10 @@ exports.dkbson = dkbson;
 var request = require('request');
 var sleep = require('sleep');
 // DO NOT ADD console.log, use console.error instead or it will make other program confused
-var req = function(options_or_url, end_cb){
-    var MAX_RETRY = 3;
-    var TIMEOUT_MS = 3000;
+var req = function(options_or_url){
+    var MAX_RETRY = 1;
     var SLEEP_MS = 500;
+    var TIMEOUT_INTERVAL = 10000;
     var options = {};
     if ('string' == typeof(options_or_url)){
         var url = options_or_url;
@@ -247,12 +247,16 @@ var req = function(options_or_url, end_cb){
     }
     function get_url(options){
         return new Promise(function(resolve, reject) {
+            var st_time = Date.now();
             function retry(timeout) {
-                if (timeout > 3) return Promise.reject(new Error("max retry times"));
-                var l_options = {'url': url, 'timeout': timeout*1000};
+                if (timeout > MAX_RETRY) return reject("max retry times"); //Promise.reject(new Error("max retry times"));
+                var l_options = options;
+                l_options.timeout = timeout * TIMEOUT_INTERVAL;
+                //console.error(l_options);
                 request(l_options, function(error, response, body) {
+                    console.error((Date.now()-st_time)/1000);
                     if (error){
-                        //console.error(timeout + ' ' +options.url + ' ' + error);
+                        console.error(timeout + ' ' +l_options.url + ' ' + error);
                         retry(timeout+1);
                         return ;
                     }

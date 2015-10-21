@@ -27,4 +27,4 @@ var parse_iss = function(str){
         console.log(res);
     }
 };
-dk.req(url, parse_iss);
+dk.req(url).then(parse_iss);
