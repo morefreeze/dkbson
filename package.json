@@ -1,0 +1,28 @@
+{
+  "name": "dkbson",
+  "version": "1.0.0",
+  "description": "Extract the dkbson in duokan.com for decode duokan data",
+  "main": "dkbson.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/morefreeze/dkbson.git"
+  },
+  "keywords": [],
+  "author": "morefreeze <morefreeze@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/morefreeze/dkbson/issues"
+  },
+  "homepage": "https://github.com/morefreeze/dkbson#readme",
+  "dependencies": {
+    "http": "0.0.0",
+    "process": "^0.11.2",
+    "readline": "^1.3.0",
+    "request": "^2.67.0",
+    "sleep": "^3.0.0",
+    "url": "^0.11.0"
+  }
+}

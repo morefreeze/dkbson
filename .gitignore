@@ -2,3 +2,4 @@
 *.jsurl
 *.iss
 *.bak
+node_modules/
