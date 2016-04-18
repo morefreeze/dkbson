@@ -71,7 +71,7 @@ type localProxy struct {
 }
 
 func newLocalProxy() *localProxy {
-	patt := "http://www.duokan.com/reader/book_info/([a-f0-9]{32})/medium"
+	patt := "http://www.duokan.com/reader/book_info/([^/]+)/medium"
 	return &localProxy{
 		re: regexp.MustCompile(patt),
 	}

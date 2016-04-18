@@ -69,7 +69,8 @@ type Librarian struct {
 	proxy Proxy
 }
 
-func (l *Librarian) getBookInfo(bid string) (BookInfo, error) {
+// GetBookInfo get book info by bid
+func (l *Librarian) GetBookInfo(bid string) (BookInfo, error) {
 	var res BookInfo
 	url := fmt.Sprintf("http://www.duokan.com/reader/book_info/%s/medium", bid)
 	data, err := l.proxy.getURL(url)
@@ -93,4 +94,14 @@ func (l *Librarian) getBookInfo(bid string) (BookInfo, error) {
 		return res, errors.Trace(err)
 	}
 	return res, nil
+}
+
+// NewLibrarian use proxy as getting url proxy.
+func NewLibrarian(proxy Proxy) *Librarian {
+	if proxy == nil {
+		proxy = newDefaultProxy(nil)
+	}
+	return &Librarian{
+		proxy: proxy,
+	}
 }
