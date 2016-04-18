@@ -7,7 +7,9 @@ import (
 )
 
 func main() {
-	l := duokan.NewLibrarian(nil)
-	b, _ := l.GetBookInfo("0c9919558af14bcb9c38ec22f3885b78")
+	jar, _ := duokan.NewFileCookie("./duokan/cookie.txt")
+	proxy := duokan.NewDefaultProxy(jar)
+	l := duokan.NewLibrarian(proxy)
+	b, _ := l.GetBookInfo("4479703547c34aba930ef5e754c69381")
 	fmt.Printf("%v", b)
 }

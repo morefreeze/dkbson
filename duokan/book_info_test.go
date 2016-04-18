@@ -29,7 +29,7 @@ func TestGetBookInfo(t *testing.T) {
 	l := &Librarian{
 		proxy: newLocalProxy(),
 	}
-	bInfo, err := l.getBookInfo(bid)
+	bInfo, err := l.GetBookInfo(bid)
 	checkErr(t, err)
 	expectBInfo := BookInfo{
 		Title:    "跟着美剧《老友记》学英语",

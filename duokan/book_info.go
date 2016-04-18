@@ -35,19 +35,20 @@ type Proxy interface {
 	getURL(string) ([]byte, error)
 }
 
-type defaultProxy struct {
+type DefaultProxy struct {
 	c *http.Client
 }
 
-func newDefaultProxy(jar http.CookieJar) *defaultProxy {
-	return &defaultProxy{
+// NewDefaultProxy set jar as cookie.
+func NewDefaultProxy(jar http.CookieJar) *DefaultProxy {
+	return &DefaultProxy{
 		c: &http.Client{
 			Jar: jar,
 		},
 	}
 }
 
-func (p *defaultProxy) getURL(url string) ([]byte, error) {
+func (p *DefaultProxy) getURL(url string) ([]byte, error) {
 	for tryCount := 0; tryCount < maxFetch; tryCount++ {
 		resp, err := p.c.Get(url)
 		if err != nil {
@@ -99,7 +100,7 @@ func (l *Librarian) GetBookInfo(bid string) (BookInfo, error) {
 // NewLibrarian use proxy as getting url proxy.
 func NewLibrarian(proxy Proxy) *Librarian {
 	if proxy == nil {
-		proxy = newDefaultProxy(nil)
+		proxy = NewDefaultProxy(nil)
 	}
 	return &Librarian{
 		proxy: proxy,
