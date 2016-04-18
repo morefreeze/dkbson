@@ -11,7 +11,7 @@ var decode_bson = function(str){
         console.log(res);
         process.exit(2);
     }
-    console.log(res);
+    console.log("%j", res);
 };
 
 file_name = process.argv[2];
