@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
+	"runtime"
 	"time"
 
 	"github.com/juju/errors"
@@ -17,7 +19,7 @@ import (
 )
 
 const (
-	maxFetch int = 5
+	maxRetry int = 5
 )
 
 // PageInfo duokan page info
@@ -38,20 +40,6 @@ type BookInfo struct {
 type JsResp struct {
 	Status string `json:"status"`
 	URL    string `json:"url"`
-}
-
-// Item each item is a word or a picture in a page.
-type Item struct {
-	X    int    `json:"x"`
-	Y    int    `json:"y"`
-	Pos  []int  `json:"pos"`
-	Type string `json:"type"`
-	Char string `json:"char"`
-}
-
-// PageContent contains many items which represent element in page.
-type PageContent struct {
-	Items []*Item
 }
 
 // Proxy get url page interface.
@@ -80,13 +68,14 @@ func NewDefaultProxy(jar http.CookieJar) *DefaultProxy {
 				},
 				DisableKeepAlives: true,
 			},
+			Timeout: 20 * time.Second,
 		},
 	}
 }
 
-// GetURL get url and save as a file.
+// GetURL get url and save as a file, it include retry and decode bson.
 func (p *DefaultProxy) GetURL(ref string) (string, error) {
-	for tryCount := 0; tryCount < maxFetch; tryCount++ {
+	for tryCount := 0; tryCount < maxRetry; tryCount++ {
 		if tryCount > 0 {
 			log.Warn(tryCount)
 			time.Sleep(time.Second)
@@ -96,7 +85,6 @@ func (p *DefaultProxy) GetURL(ref string) (string, error) {
 			log.Error(err)
 			continue
 		}
-		defer resp.Body.Close()
 		f, err := ioutil.TempFile(os.TempDir(), "duokan")
 		if err != nil {
 			log.Error(err)
@@ -106,7 +94,7 @@ func (p *DefaultProxy) GetURL(ref string) (string, error) {
 		// so reader is blocking.
 		_, err = io.Copy(f, resp.Body)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("Get error url[%s], err[%s]", ref, err)
 			continue
 		}
 		err = f.Close()
@@ -116,16 +104,20 @@ func (p *DefaultProxy) GetURL(ref string) (string, error) {
 		}
 		return f.Name(), nil
 	}
-	return "", errors.Errorf("reach max retry time [%d]", maxFetch)
+	return "", errors.Errorf("reach max retry time [%d]", maxRetry)
 }
 
 // Librarian This guy manager all books.
 type Librarian struct {
 	proxy Proxy
+	books map[string]*BookInfo
 }
 
 // GetBookInfo get book info by bid.
 func (l *Librarian) GetBookInfo(bid string) (BookInfo, error) {
+	if res, ok := l.books[bid]; ok {
+		return *res, nil
+	}
 	var res BookInfo
 	url := fmt.Sprintf("http://www.duokan.com/reader/book_info/%s/medium", bid)
 	jsonData, err := l.DecodeURL(url)
@@ -159,12 +151,14 @@ func (l *Librarian) GetBookContent(bid, outFile string) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
-	for _, page := range bInfo.Pages {
+	for idx, page := range bInfo.Pages {
+		log.Debugf("Fetching %d/%d page...", idx+1, len(bInfo.Pages))
 		content, err := l.FetchPageContent(bid, page.Pid)
 		_, err = outF.WriteString(content)
 		if err != nil {
 			return errors.Trace(err)
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 	return nil
 }
@@ -175,7 +169,11 @@ func (l *Librarian) FetchPageContent(bid, iss string) (string, error) {
 	if err != nil {
 		return "", errors.Trace(err)
 	}
-	content, err := l.getPageContent(js)
+	page, err := l.getPageContent(js)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	content, err := page.GenerateContent()
 	if err != nil {
 		return "", errors.Trace(err)
 	}
@@ -202,41 +200,45 @@ func (l *Librarian) iss2Js(bid, iss string) (string, error) {
 }
 
 // getPageContent get js address and extract content to string.
-func (l *Librarian) getPageContent(js string) (string, error) {
+func (l *Librarian) getPageContent(js string) (*PageContent, error) {
 	fileName, err := l.proxy.GetURL(js)
 	if err != nil {
-		return "", errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 	// Truncate file content to only base64 code.
 	f, err := os.OpenFile(fileName, os.O_RDWR, 0666)
 	if err != nil {
-		return "", errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 	data, err := ioutil.ReadAll(f)
 	if err != nil {
-		return "", errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 	if _, err = f.Seek(0, 0); err != nil {
-		return "", errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
-	data = data[len("duokan_page('") : len(data)-4]
+	out := bytes.Split(data, []byte("'"))
+	if len(out) < 2 {
+		return nil, errors.Errorf("js file format error [%s]", data)
+	}
+	data = out[1]
 	if _, err = f.Write(data); err != nil {
-		return "", errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 	if err = f.Truncate(int64(len(data))); err != nil {
-		return "", errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 	if err = f.Close(); err != nil {
-		return "", errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 	jsonData, err := runDecode(fileName)
 	var page PageContent
 	dec := json.NewDecoder(bytes.NewReader(jsonData))
 	err = dec.Decode(&page)
 	if err != nil {
-		return "", errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
-	return constructPage(page)
+	return &page, nil
 }
 
 // NewLibrarian use proxy as getting url proxy.
@@ -250,7 +252,10 @@ func NewLibrarian(proxy Proxy) *Librarian {
 }
 
 func runDecode(fileName string) ([]byte, error) {
-	cmd := exec.Command("node", "../decode.js", fileName)
+	cmd := exec.Command("node", "./decode.js", fileName)
+	if _, currentFile, _, ok := runtime.Caller(1); ok {
+		cmd.Dir = path.Join(path.Dir(currentFile), "..")
+	}
 	data, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, errors.Maskf(err, "stderr: %s", data)
@@ -260,8 +265,4 @@ func runDecode(fileName string) ([]byte, error) {
 		return nil, errors.Trace(err)
 	}
 	return data, nil
-}
-
-func constructPage(page PageContent) (string, error) {
-	return "", nil
 }
