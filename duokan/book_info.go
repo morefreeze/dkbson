@@ -19,11 +19,14 @@ import (
 )
 
 const (
-	maxRetry int = 5
+	maxRetry      = 5
+	retryInterval = 200 * time.Millisecond
+	pageInterval  = 300 * time.Millisecond
 )
 
 // PageInfo duokan page info
 type PageInfo struct {
+	// Pid is iss format of bid.
 	Pid string `json:"page_id"`
 	Num int    `json:"page_number"`
 }
@@ -31,7 +34,7 @@ type PageInfo struct {
 // BookInfo duokan book info, including name, iss and so on.
 type BookInfo struct {
 	Title    string      `json:"title"`
-	Pages    []*PageInfo `json:"pages"`
+	Pages    []*PageInfo `json:"pages"` // Pages[i].Num == i+1
 	Revision string      `json:"revision"`
 	// chapters
 }
@@ -42,27 +45,27 @@ type JsResp struct {
 	URL    string `json:"url"`
 }
 
-// Proxy get url page interface.
+// Proxy fetches url page interface.
 type Proxy interface {
-	// GetURL get url string return file name.
-	GetURL(string) (string, error)
+	// FetchURL fetches url content, store content in a file and return file name.
+	FetchURL(string) (string, error)
 }
 
-// DefaultProxy default proxy only keep cookie.
-type DefaultProxy struct {
+// BsonProxy fetches url with cookie and decode it.
+type BsonProxy struct {
 	c *http.Client
 }
 
-// NewDefaultProxy set jar as cookie.
-func NewDefaultProxy(jar http.CookieJar) *DefaultProxy {
-	return &DefaultProxy{
+// NewBsonProxy set jar as cookie.
+func NewBsonProxy(jar http.CookieJar) *BsonProxy {
+	return &BsonProxy{
 		c: &http.Client{
 			Jar: jar,
 			Transport: &http.Transport{
 				Dial: func(n, addr string) (net.Conn, error) {
 					conn, err := net.Dial(n, addr)
 					if err == nil {
-						conn.SetDeadline(time.Now().Add(1 * time.Second))
+						conn.SetDeadline(time.Now().Add(10 * time.Second))
 					}
 					return conn, err
 				},
@@ -73,12 +76,12 @@ func NewDefaultProxy(jar http.CookieJar) *DefaultProxy {
 	}
 }
 
-// GetURL get url and save as a file, it include retry and decode bson.
-func (p *DefaultProxy) GetURL(ref string) (string, error) {
+// FetchURL fetches url and saves as a file, it includes retry and decoding bson.
+func (p *BsonProxy) FetchURL(ref string) (string, error) {
 	for tryCount := 0; tryCount < maxRetry; tryCount++ {
 		if tryCount > 0 {
-			log.Warn(tryCount)
-			time.Sleep(time.Second)
+			log.Warnf("Retry after %d times", tryCount)
+			time.Sleep(retryInterval)
 		}
 		resp, err := p.c.Get(ref)
 		if err != nil {
@@ -110,13 +113,13 @@ func (p *DefaultProxy) GetURL(ref string) (string, error) {
 // Librarian This guy manager all books.
 type Librarian struct {
 	proxy Proxy
-	books map[string]*BookInfo
+	books map[string]BookInfo // Now books is read only.
 }
 
 // GetBookInfo get book info by bid.
 func (l *Librarian) GetBookInfo(bid string) (BookInfo, error) {
 	if res, ok := l.books[bid]; ok {
-		return *res, nil
+		return res, nil
 	}
 	var res BookInfo
 	url := fmt.Sprintf("http://www.duokan.com/reader/book_info/%s/medium", bid)
@@ -129,20 +132,22 @@ func (l *Librarian) GetBookInfo(bid string) (BookInfo, error) {
 	if err != nil {
 		return res, errors.Trace(err)
 	}
+	// TODO: make pages sorted and check some pages is missing.
+	l.books[bid] = res
 	return res, nil
 }
 
-// DecodeURL fetch url and decode it with dkbson.
+// DecodeURL fetches url and decodes it through calling node dkbson.
 func (l *Librarian) DecodeURL(ref string) ([]byte, error) {
-	fileName, err := l.proxy.GetURL(ref)
+	fileName, err := l.proxy.FetchURL(ref)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 	return runDecode(fileName)
 }
 
-// GetBookContent save book content as file by bid.
-func (l *Librarian) GetBookContent(bid, outFile string) error {
+// SaveBook saves book content as file by bid.
+func (l *Librarian) SaveBook(bid, outFile string) error {
 	bInfo, err := l.GetBookInfo(bid)
 	if err != nil {
 		return errors.Trace(err)
@@ -153,18 +158,18 @@ func (l *Librarian) GetBookContent(bid, outFile string) error {
 	}
 	for idx, page := range bInfo.Pages {
 		log.Debugf("Fetching %d/%d page...", idx+1, len(bInfo.Pages))
-		content, err := l.FetchPageContent(bid, page.Pid)
+		content, err := l.fetchPageContent(bid, page.Pid)
 		_, err = outF.WriteString(content)
 		if err != nil {
 			return errors.Trace(err)
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(pageInterval)
 	}
 	return nil
 }
 
-// FetchPageContent get iss of bid and convert it to content.
-func (l *Librarian) FetchPageContent(bid, iss string) (string, error) {
+// fetchPageContent gets iss of bid and convert it to content.
+func (l *Librarian) fetchPageContent(bid, iss string) (string, error) {
 	js, err := l.iss2Js(bid, iss)
 	if err != nil {
 		return "", errors.Trace(err)
@@ -201,36 +206,18 @@ func (l *Librarian) iss2Js(bid, iss string) (string, error) {
 
 // getPageContent get js address and extract content to string.
 func (l *Librarian) getPageContent(js string) (*PageContent, error) {
-	fileName, err := l.proxy.GetURL(js)
+	fileName, err := l.proxy.FetchURL(js)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 	// Truncate file content to only base64 code.
-	f, err := os.OpenFile(fileName, os.O_RDWR, 0666)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-	if _, err = f.Seek(0, 0); err != nil {
-		return nil, errors.Trace(err)
-	}
-	out := bytes.Split(data, []byte("'"))
-	if len(out) < 2 {
-		return nil, errors.Errorf("js file format error [%s]", data)
-	}
-	data = out[1]
-	if _, err = f.Write(data); err != nil {
-		return nil, errors.Trace(err)
-	}
-	if err = f.Truncate(int64(len(data))); err != nil {
-		return nil, errors.Trace(err)
-	}
-	if err = f.Close(); err != nil {
-		return nil, errors.Trace(err)
-	}
+	modifyFile(fileName, func(data []byte) []byte {
+		out := bytes.Split(data, []byte("'"))
+		if len(out) < 2 {
+			return nil
+		}
+		return out[1]
+	})
 	jsonData, err := runDecode(fileName)
 	var page PageContent
 	dec := json.NewDecoder(bytes.NewReader(jsonData))
@@ -244,15 +231,17 @@ func (l *Librarian) getPageContent(js string) (*PageContent, error) {
 // NewLibrarian use proxy as getting url proxy.
 func NewLibrarian(proxy Proxy) *Librarian {
 	if proxy == nil {
-		proxy = NewDefaultProxy(nil)
+		proxy = NewBsonProxy(nil)
 	}
 	return &Librarian{
 		proxy: proxy,
+		books: make(map[string]BookInfo),
 	}
 }
 
 func runDecode(fileName string) ([]byte, error) {
 	cmd := exec.Command("node", "./decode.js", fileName)
+	// Get package main path and set it as work directory.
 	if _, currentFile, _, ok := runtime.Caller(1); ok {
 		cmd.Dir = path.Join(path.Dir(currentFile), "..")
 	}
@@ -265,4 +254,31 @@ func runDecode(fileName string) ([]byte, error) {
 		return nil, errors.Trace(err)
 	}
 	return data, nil
+}
+
+// modifyFile modifies file with fn and save back to fileName.
+func modifyFile(fileName string, fn func([]byte) []byte) error {
+	f, err := os.OpenFile(fileName, os.O_RDWR, 0666)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	data = fn(data)
+	if _, err = f.Seek(0, 0); err != nil {
+		return errors.Trace(err)
+	}
+	n, err := f.Write(data)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if err = f.Truncate(int64(n)); err != nil {
+		return errors.Trace(err)
+	}
+	if err = f.Close(); err != nil {
+		return errors.Trace(err)
+	}
+	return nil
 }

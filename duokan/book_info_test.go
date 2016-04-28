@@ -17,8 +17,8 @@ func checkErr(t *testing.T, err error) {
 	}
 }
 
-func TestGetURL(t *testing.T) {
-	p := NewDefaultProxy(nil)
+func TestFetchURL(t *testing.T) {
+	p := NewBsonProxy(nil)
 	urlList := []string{
 		"http://www.duokan.com/reader/book_info/4479703547c34aba930ef5e754c69381/medium",
 		"http://www.duokan.com/reader/page/5e5c9d902fbd49c8ae1860a161a83242/iss_0060008_-jUCuT3F0RNRz8f5rM8fuiHqApo",
@@ -26,7 +26,7 @@ func TestGetURL(t *testing.T) {
 	for i := 0; i < len(urlList); i++ {
 		expectData, err := ioutil.ReadFile(fmt.Sprintf("../results/test_url%d", i))
 		checkErr(t, err)
-		fName, err := p.GetURL(urlList[i])
+		fName, err := p.FetchURL(urlList[i])
 		checkErr(t, err)
 		f, err := os.Open(fName)
 		checkErr(t, err)
@@ -41,9 +41,7 @@ func TestGetURL(t *testing.T) {
 
 func TestGetBookInfo(t *testing.T) {
 	bid := "5e5c9d902fbd49c8ae1860a161a83242"
-	l := &Librarian{
-		proxy: newLocalProxy(),
-	}
+	l := NewLibrarian(newLocalProxy())
 	bInfo, err := l.GetBookInfo(bid)
 	checkErr(t, err)
 	expectBInfo := BookInfo{
@@ -57,11 +55,9 @@ func TestGetBookInfo(t *testing.T) {
 }
 
 func TestIss(t *testing.T) {
+	l := NewLibrarian(newLocalProxy())
 	bid := "5e5c9d902fbd49c8ae1860a161a83242"
 	iss := "iss_0060008_-jUCuT3F0RNRz8f5rM8fuiHqApo"
-	l := &Librarian{
-		proxy: newLocalProxy(),
-	}
 	jsAddr, err := l.iss2Js(bid, iss)
 	checkErr(t, err)
 	expectJs := "http://pages.read.duokan.com/mfsv2/download/s010/p01HBRCyEWdO/Bizwt2J9FkIiVJh.js"
@@ -72,10 +68,8 @@ func TestIss(t *testing.T) {
 }
 
 func TestGetPageContent(t *testing.T) {
+	l := NewLibrarian(newLocalProxy())
 	js := "http://pages.read.duokan.com/mfsv2/download/s010/p01WgwI7imAG/eZryvzKeQBfcSbb.js"
-	l := &Librarian{
-		proxy: newLocalProxy(),
-	}
 	page, err := l.getPageContent(js)
 	checkErr(t, err)
 	if 555 != len(page.Items) {
@@ -90,14 +84,12 @@ func TestGetPageContent(t *testing.T) {
 }
 
 func TestDecodeURL(t *testing.T) {
+	l := NewLibrarian(newLocalProxy())
 	bid := "5e5c9d902fbd49c8ae1860a161a83242"
-	l := &Librarian{
-		proxy: newLocalProxy(),
-	}
 	url := fmt.Sprintf("http://www.duokan.com/reader/book_info/%s/medium", bid)
 	data, err := l.DecodeURL(url)
 	checkErr(t, err)
-	f, err := os.Open("../tests/test_book_info.ret")
+	f, err := os.Open("../results/test_book_info")
 	checkErr(t, err)
 	expectData, err := ioutil.ReadAll(f)
 	checkErr(t, err)
@@ -139,7 +131,7 @@ func newLocalProxy() *localProxy {
 	return &localProxy{}
 }
 
-func (p *localProxy) GetURL(url string) (string, error) {
+func (p *localProxy) FetchURL(url string) (string, error) {
 	var fileName string
 	switch url {
 	case "http://www.duokan.com/reader/book_info/5e5c9d902fbd49c8ae1860a161a83242/medium":
