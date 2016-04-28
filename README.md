@@ -1,52 +1,21 @@
 # dkbson
-Extract the dkbson in duokan.com for decode duokan data
+Extract the dkbson in duokan.com for decoding duokan data.
 
-### get_whole_book.sh
-`sh get_whole_book.sh book_md5`
+DO NOT use for business!!
 
-It will save all middle result including iss list and js url list, finally it
-will save ${title}.txt
+`npm install`
 
-If you meet this error:
-```
-events.js:85
-      throw er; // Unhandled 'error' event
-```
-try use `bash get_whole_book.sh book_md5` explicitly
+`go run main.go`
 
-Also, you can only know this one-key shell, following is separate js script
-
-### get_book_info.js
-`Usage: node get_book_info.js [title|iss]`
-
-If omit the third argument, it will output the result json, but some object
-only display `[Object]` instead of expanding it
-
-### convert_iss_js.js
-`Usage: cat foo.iss | node convert_iss_js.js` foo.iss is output of
-`node get_book_info.js iss`
-
-It will output url of js file each line, and it has the same order of the iss file
-
-### get_page_content.js
-`Usage: cat foo.jsurl | node get_page_content.js` foo.jsurl is output of
-`convert_iss_js.js`
-
-It will output the text of the js file decoded. It will check `y` of position
-to make new line, but it is useless when the book including lots of formula
-or mathematical symbols.
+You can feel free to modify `main.go` to any book you want, even you can set
+your own cookie(download it you can use Chrome extension like `cookie.txt export`).
 
 ## TODO
-1. I am trying to let the duokan web page load local iss file to display rich text
-of the book.
-
-1. The ugly parse rich text function will add newline if the text is in a list or a new page, like:
-- blahblahblah
-
-parse rich function output(always output 4 space at line head):
-
-        blahblah
-
-        blah
-
-1. load the image, maybe output as markdown
+1. I am trying to generate more pretty page(alternative) and load image even
+book internal link:
+    1. let the duokan web page load local iss file to display rich text
+of the book(perfect but hard).
+    1. write file to html with simple format(acceptable).
+1. Add queue when downloading.
+1. Save meta data into durability store(like MongoDB, Redis).
+1. Dependent on last, support breakpoint download.
