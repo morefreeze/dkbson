@@ -33,9 +33,9 @@ type PageInfo struct {
 
 // BookInfo duokan book info, including name, iss and so on.
 type BookInfo struct {
-	Title    string      `json:"title"`
-	Pages    []*PageInfo `json:"pages"` // Pages[i].Num == i+1
-	Revision string      `json:"revision"`
+	Title    string     `json:"title"`
+	Pages    []PageInfo `json:"pages"` // Pages[i].Num == i+1
+	Revision string     `json:"revision"`
 	// chapters
 }
 

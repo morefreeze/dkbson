@@ -46,7 +46,7 @@ func TestGetBookInfo(t *testing.T) {
 	checkErr(t, err)
 	expectBInfo := BookInfo{
 		Title:    "跟着美剧《老友记》学英语",
-		Pages:    make([]*PageInfo, 60),
+		Pages:    make([]PageInfo, 60),
 		Revision: "20151110.1",
 	}
 	if !compareBook(expectBInfo, bInfo) {
