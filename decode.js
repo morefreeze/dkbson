@@ -6,7 +6,7 @@ if (process.argv.length <= 1){
     process.exit(1);
 }
 var decode_bson = function(str){
-    res = dk.dkbson.decode(str);
+    res = dk.dkbson.decode(str.trim());
     if (res.status == 'error'){
         console.log(res);
         process.exit(2);
